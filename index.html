@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aegis Intelligence Grid - Command Center</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#05070c',
+                        cardBg: 'rgba(11, 19, 36, 0.7)',
+                        cyanAccent: '#00e5ff',
+                        redAccent: '#ff3366',
+                        orangeAccent: '#ff9900',
+                        greenAccent: '#00cc88'
+                    },
+                    fontFamily: {
+                        heading: ['Space Grotesk', 'sans-serif'],
+                        body: ['Plus Jakarta Sans', 'sans-serif'],
+                        code: ['Space Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Leaflet Map CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome for high-quality SVG icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom styling -->
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body class="bg-darkBg text-slate-100 font-body min-h-screen flex flex-col relative overflow-x-hidden">
+    
+    <!-- Background Glow Orbs -->
+    <div class="absolute inset-0 overflow-hidden z-[-1] pointer-events-none">
+        <div class="absolute w-[500px] h-[500px] rounded-full bg-cyanAccent/10 blur-[130px] -top-[10%] -right-[5%]"></div>
+        <div class="absolute w-[600px] h-[600px] rounded-full bg-redAccent/10 blur-[130px] -bottom-[15%] -left-[10%]"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="border-b border-white/5 bg-slate-950/80 backdrop-blur-md sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-[1800px] mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl bg-cyanAccent/10 border border-cyanAccent/30 flex items-center justify-center text-cyanAccent text-2xl shadow-[0_0_15px_rgba(0,229,255,0.15)]">
+                    <i class="fa-solid fa-satellite-dish pulse-icon"></i>
+                </div>
+                <div>
+                    <h1 class="font-heading font-bold text-xl tracking-wider bg-gradient-to-r from-white to-cyan-300 bg-clip-text text-transparent">AEGIS INTELLIGENCE GRID</h1>
+                    <p class="text-[10px] text-slate-400 font-semibold tracking-widest uppercase">Decentralized Offline Crisis Management Node</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-6 text-xs font-semibold text-slate-400">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-greenAccent shadow-[0_0_8px_#00cc88] animate-pulse"></span>
+                    <span class="text-greenAccent uppercase tracking-wider">GRID SECURE</span>
+                </div>
+                <div class="h-4 w-[1px] bg-white/10"></div>
+                <div id="clock-display" class="font-code text-slate-200">00:00:00 UTC</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Tab Bar -->
+    <nav class="border-b border-white/5 bg-slate-900/40 backdrop-blur-sm px-6 py-2">
+        <div class="max-w-[1800px] mx-auto flex flex-wrap gap-2 text-xs">
+            <button onclick="switchTab('victim-view')" id="tab-victim-view" class="tab-btn active px-4 py-2.5 rounded-lg border border-cyanAccent/30 bg-white/5 text-cyanAccent transition-all font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-mobile-screen-button"></i> 1. USER/VICTIM VIEW
+            </button>
+            <button onclick="switchTab('ngo-view')" id="tab-ngo-view" class="tab-btn px-4 py-2.5 rounded-lg border border-transparent hover:bg-white/5 hover:border-white/5 transition-all text-slate-400 font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-heart-pulse"></i> 2. NGO / RELIEF DASHBOARD
+            </button>
+            <button onclick="switchTab('military-view')" id="tab-military-view" class="tab-btn px-4 py-2.5 rounded-lg border border-transparent hover:bg-white/5 hover:border-white/5 transition-all text-slate-400 font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved"></i> 3. MILITARY COMMAND HUB
+            </button>
+            <button onclick="switchTab('satellite-view')" id="tab-satellite-view" class="tab-btn px-4 py-2.5 rounded-lg border border-transparent hover:bg-white/5 hover:border-white/5 transition-all text-slate-400 font-semibold flex items-center gap-2">
+                <i class="fa-solid fa-satellite"></i> 4. SATELLITE HANDLER
+            </button>
+            <div class="ml-auto flex items-center">
+                <button onclick="clearDatabase()" class="px-3 py-1.5 rounded bg-redAccent/10 border border-redAccent/20 hover:bg-redAccent/20 text-redAccent text-[11px] font-bold transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-trash-can"></i> CLEAR DATABASE
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Dashboard Content Wrapper -->
+    <main class="flex-1 max-w-[1800px] mx-auto w-full p-6 flex flex-col gap-6">
+
+        <!-- ==================== TAB 1: USER/VICTIM VIEW ==================== -->
+        <div id="view-victim-view" class="tab-content flex flex-col lg:flex-row gap-6 items-stretch">
+            
+            <!-- Interactive Offline Mobile Emulator (Left Panel) -->
+            <div class="w-full lg:w-[480px] shrink-0 flex flex-col bg-slate-950 border border-white/10 rounded-[40px] p-4 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.8)] relative overflow-hidden">
+                <!-- Phone top bar notch -->
+                <div class="flex justify-between items-center px-6 pt-2 pb-4 text-[10px] text-slate-500 font-bold font-code font-bold">
+                    <span>AEGIS OFFLINE BEACON</span>
+                    <div class="flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                        <span>OFFLINE CONNECTIVITY</span>
+                    </div>
+                </div>
+
+                <!-- Phone Body Container -->
+                <div class="flex-1 rounded-[28px] bg-slate-900 border border-white/5 p-4 flex flex-col gap-4 overflow-y-auto max-h-[650px]">
+                    <!-- Form Header -->
+                    <div class="bg-slate-950/60 rounded-xl p-3 border border-white/5 text-center">
+                        <h4 class="text-xs text-slate-300 font-bold uppercase tracking-wider">Offline Emergency Terminal</h4>
+                        <p class="text-[10px] text-slate-400 mt-1">Requires 0 Cellular Data. Compresses into 17-Byte Beacons.</p>
+                    </div>
+
+                    <!-- Inputs: Name and Medical -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[9px] text-slate-400 font-bold uppercase">Victim Full Name</label>
+                            <input id="victim-name" type="text" value="Jane Doe" class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyanAccent">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[9px] text-slate-400 font-bold uppercase">Medical / Blood Type</label>
+                            <input id="victim-blood" type="text" value="AB-Negative" class="bg-slate-950 border border-white/10 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-cyanAccent">
+                        </div>
+                    </div>
+
+                    <!-- Selection: Coordinates and Preset Sector Positions -->
+                    <div class="bg-slate-950/30 p-3 rounded-xl border border-white/5 flex flex-col gap-2">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[9px] text-slate-400 font-bold uppercase">Incident Coordinate Presets</label>
+                            <span class="text-[9px] text-cyanAccent font-code">L1 GPS LOCK</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="setVictimCoords(12.97159, 77.59456, 'Central Flood Sector')" class="py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold border border-white/5">Sector A</button>
+                            <button onclick="setVictimCoords(12.96542, 77.60112, 'West Collapse Sector')" class="py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold border border-white/5">Sector B</button>
+                            <button onclick="setVictimCoords(12.96910, 77.58550, 'Market Area')" class="py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold border border-white/5">Sector C</button>
+                        </div>
+                        <div class="flex gap-2 mt-1">
+                            <input id="victim-lat" type="number" step="0.00001" value="12.97159" class="w-1/2 bg-slate-950 border border-white/10 rounded px-2 py-1 text-xs font-code text-center">
+                            <input id="victim-lon" type="number" step="0.00001" value="77.59456" class="w-1/2 bg-slate-950 border border-white/10 rounded px-2 py-1 text-xs font-code text-center">
+                        </div>
+                    </div>
+
+                    <!-- Macro Emergency & Severity -->
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[9px] text-slate-400 font-bold uppercase">Situation Severity Scale (0-7)</label>
+                        <input id="victim-severity-slider" type="range" min="0" max="7" value="7" class="w-full h-1.5 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-cyanAccent">
+                        <div class="flex justify-between text-[9px] text-slate-500 font-bold font-code px-1">
+                            <span>0: MONITOR</span>
+                            <span>4: HIGH</span>
+                            <span>7: CRITICAL</span>
+                        </div>
+                    </div>
+
+                    <!-- Requirements Selection checkboxes -->
+                    <div class="bg-slate-950/40 p-3 rounded-xl border border-white/5 flex flex-col gap-2">
+                        <label class="text-[9px] text-slate-400 font-bold uppercase">Requested Emergency Supplies</label>
+                        <div class="flex flex-col gap-1.5 text-xs text-slate-300">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="req-med" checked class="rounded bg-slate-950 border-white/10 text-cyanAccent focus:ring-0">
+                                <span>Trauma First Aid Kit (Medical)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="req-food" checked class="rounded bg-slate-950 border-white/10 text-cyanAccent focus:ring-0">
+                                <span>Emergency MRE Food Pack (Rations)</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" id="req-tent" class="rounded bg-slate-950 border-white/10 text-cyanAccent focus:ring-0">
+                                <span>Thermal Cold Tent (Shelter)</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Options -->
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <label class="flex items-center gap-2 bg-slate-950/40 p-2 rounded-lg border border-white/5 cursor-pointer">
+                            <input type="checkbox" id="opt-dr" checked class="text-cyanAccent focus:ring-0">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-[10px]">Dead-Reckoning</span>
+                                <span class="text-[8px] text-slate-500">IMU Sensor Drift</span>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 bg-slate-950/40 p-2 rounded-lg border border-white/5 cursor-pointer">
+                            <input type="checkbox" id="opt-mesh" checked class="text-cyanAccent focus:ring-0">
+                            <div class="flex flex-col">
+                                <span class="font-bold text-[10px]">P2P Multi-Hop</span>
+                                <span class="text-[8px] text-slate-500">Relay via mesh</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <!-- Pulse Beacon Trigger Button -->
+                    <button onclick="transmitLocalBeacon()" class="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-[0_0_15px_rgba(0,229,255,0.2)] flex items-center justify-center gap-2 uppercase tracking-wider">
+                        <i class="fa-solid fa-circle-nodes animate-pulse text-sm"></i> TRANSMIT BEACON NOW
+                    </button>
+
+                    <!-- Telemetry Terminal Logger (Visual Console) -->
+                    <div class="bg-black/80 border border-white/10 rounded-xl p-3 flex flex-col gap-1.5 h-36 font-code text-[10px] text-cyan-200 overflow-y-auto" id="phone-terminal-logs">
+                        <div class="text-slate-500">&gt; Beacon Transmitter offline. Config parameters above and broadcast SOS signal.</div>
+                    </div>
+                </div>
+
+                <!-- Phone bottom home bar -->
+                <div class="w-32 h-1 bg-white/20 rounded-full mx-auto mt-4"></div>
+            </div>
+
+            <!-- Victim view terminal instructions (Right Panel) -->
+            <div class="flex-1 glass-panel p-6 flex flex-col justify-between">
+                <div class="flex flex-col gap-4">
+                    <h3 class="font-heading text-lg font-bold border-b border-white/5 pb-3 flex items-center gap-2">
+                        <i class="fa-solid fa-mobile text-cyanAccent"></i> Realistic Offline Beacon Simulator Interface
+                    </h3>
+                    <p class="text-sm text-slate-300">
+                        This interface functions as a **high-fidelity hardware simulator**. You can configure a victim's request directly from the phone emulator shell on the left. E2EE identity calculations and 17-byte structural serialization happen right in the page!
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                        <div class="bg-slate-950/40 p-4 border border-white/5 rounded-xl">
+                            <h4 class="text-xs font-bold text-cyanAccent uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-compress"></i> 17-Byte Structural Packing
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-2">
+                                GPS latitude and longitude decimals are compressed into 4-byte floating points. The User ID is packed into an 8-byte unsigned integer. The status indicators are bit-packed into a single byte.
+                            </p>
+                        </div>
+                        <div class="bg-slate-950/40 p-4 border border-white/5 rounded-xl">
+                            <h4 class="text-xs font-bold text-orangeAccent uppercase tracking-wider flex items-center gap-1.5">
+                                <i class="fa-solid fa-shield-halved"></i> Asymmetric E2EE Security
+                            </h4>
+                            <p class="text-xs text-slate-400 mt-2">
+                                Crucial details (name, blood group, requested resources) are E2EE encrypted using a simulated RSA-2048 key. The ciphertext is fully obfuscated on transit mesh nodes, maintaining victim privacy.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Real-Time Console details -->
+                    <div class="bg-cyanAccent/5 border border-cyanAccent/10 p-4 rounded-xl mt-4">
+                        <h4 class="text-xs font-bold text-cyanAccent uppercase flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-info"></i> Real-time Dashboard Propagation
+                        </h4>
+                        <p class="text-xs text-slate-300 mt-1">
+                            When you click **Transmit Beacon**, the packet is serialized, encrypted, and posted to the backend API. The backend processes the packet, updates SQLite, and instantly triggers a **Server-Sent Event (SSE)** push to all active screens. Watch the NGO dashboard update instantly without a page refresh!
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-6 border-t border-white/5 pt-4 flex items-center justify-between text-xs text-slate-400 font-semibold">
+                    <span>EMULATOR INTERFACE: READY</span>
+                    <span>BEACON VECTOR: ACTIVE</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 2: NGO / RELIEF DASHBOARD ==================== -->
+        <div id="view-ngo-view" class="tab-content hidden flex flex-col gap-6">
+            <!-- NGO Statistics Row -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-panel p-4 flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 text-lg">
+                        <i class="fa-solid fa-people-pulling"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Incidents</h4>
+                        <p class="text-2xl font-bold font-heading" id="ngo-stat-total">0</p>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-redAccent/10 border border-redAccent/20 flex items-center justify-center text-redAccent text-lg">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Critical Priority</h4>
+                        <p class="text-2xl font-bold font-heading text-redAccent" id="ngo-stat-critical">0</p>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-orangeAccent/10 border border-orangeAccent/20 flex items-center justify-center text-orangeAccent text-lg">
+                        <i class="fa-solid fa-truck-ramp-box"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Dispatched Aid</h4>
+                        <p class="text-2xl font-bold font-heading text-orangeAccent" id="ngo-stat-dispatched">0</p>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-lg bg-greenAccent/10 border border-greenAccent/20 flex items-center justify-center text-greenAccent text-lg">
+                        <i class="fa-solid fa-warehouse"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Supplies Left</h4>
+                        <p class="text-2xl font-bold font-heading text-greenAccent" id="ngo-stat-supplies">0</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NGO Incident Table & Inventory Split -->
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
+                <!-- Needs Heatmap Table -->
+                <div class="xl:col-span-2 glass-panel p-5 flex flex-col gap-4 overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-white/5 pb-3">
+                        <h3 class="font-heading font-bold flex items-center gap-2 text-md">
+                            <i class="fa-solid fa-heart-circle-exclamation text-redAccent"></i> Active Crisis Heatmap of Needs
+                        </h3>
+                        <span class="text-xs text-slate-400 font-semibold" id="ngo-count-label">0 Incident Records found</span>
+                    </div>
+                    
+                    <div class="overflow-x-auto flex-1 max-h-[400px]">
+                        <table class="w-full text-left text-xs border-collapse font-body">
+                            <thead>
+                                <tr class="text-slate-500 border-b border-white/5 uppercase text-[10px] font-bold">
+                                    <th class="py-2.5 px-3">Survivor ID</th>
+                                    <th class="py-2.5 px-3">Decrypted Identity (E2EE)</th>
+                                    <th class="py-2.5 px-3">Triage Classification</th>
+                                    <th class="py-2.5 px-3">Specific Requested Needs</th>
+                                    <th class="py-2.5 px-3">Dispatch Status</th>
+                                    <th class="py-2.5 px-3">Acks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ngo-incidents-body">
+                                <tr>
+                                    <td colspan="6" class="py-8 text-center text-slate-500">
+                                        <i class="fa-solid fa-box-archive text-2xl mb-2 block"></i>
+                                        No active survivor telemetry in SQLite database. Run client simulator.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- NGO Inventory Dispatch Command Panel -->
+                <div class="glass-panel p-5 flex flex-col justify-between gap-4">
+                    <div class="flex flex-col gap-4 font-body">
+                        <h3 class="font-heading font-bold border-b border-white/5 pb-3 flex items-center gap-2 text-md">
+                            <i class="fa-solid fa-box-open text-cyanAccent"></i> Relief Supply Dispatch (Hope Loop)
+                        </h3>
+                        
+                        <div class="flex flex-col gap-3">
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] text-slate-500 font-bold uppercase">Select Active Survivor Target</label>
+                                <select id="ngo-dispatch-user" onchange="onNgoTargetSelected(this.value)" class="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-xs text-slate-100 focus:outline-none focus:border-cyanAccent font-semibold">
+                                    <option value="">-- No Active Cases --</option>
+                                </select>
+                            </div>
+
+                            <!-- Target requirements notification -->
+                            <div class="bg-black/40 border border-white/5 p-3 rounded-lg flex flex-col gap-1 text-[11px] text-slate-400 hidden" id="dispatch-requirements-banner">
+                                <span class="text-[9px] text-slate-500 font-bold uppercase">Target Requested Inventory:</span>
+                                <strong class="text-orangeAccent" id="dispatch-requirements-list">None</strong>
+                            </div>
+
+                            <div class="flex flex-col gap-1">
+                                <label class="text-[10px] text-slate-500 font-bold uppercase">Select Resource Inventory Items</label>
+                                <div id="ngo-dispatch-resources-container" class="flex flex-col gap-2 bg-slate-950/40 p-3 rounded-lg border border-white/10 text-xs text-slate-300 max-h-[160px] overflow-y-auto">
+                                    <!-- Dynamic checkboxes will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="dispatchAid()" class="w-full mt-2 py-3 px-4 rounded-lg bg-greenAccent hover:bg-greenAccent/95 text-slate-950 font-bold text-xs transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,204,136,0.1)]">
+                            <i class="fa-solid fa-truck-dispatch"></i> DISPATCH AID & TRANSMIT ACK
+                        </button>
+                    </div>
+
+                    <div class="bg-slate-950/60 p-4 border border-white/5 rounded-xl flex flex-col gap-2 font-body">
+                        <h4 class="text-[10px] font-bold text-greenAccent uppercase tracking-wider flex items-center gap-1">
+                            <i class="fa-solid fa-circle-info"></i> Reverse Handshake loop
+                        </h4>
+                        <p class="text-[11px] text-slate-400">
+                            Dispatching aid decrements inventories in SQLite. Additionally, it broadcasts a compressed confirmation packet through mesh relays back to the offline recipient’s phone display.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 3: MILITARY / LOGISTICS COMMAND HUB ==================== -->
+        <div id="view-military-view" class="tab-content hidden flex flex-col lg:flex-row gap-6 items-stretch">
+            <!-- Left Panel: Tactical Map with Leaflet Map container inside -->
+            <div class="flex-1 glass-panel p-5 flex flex-col gap-4 overflow-hidden min-h-[480px]">
+                <div class="flex justify-between items-center border-b border-white/5 pb-3">
+                    <h3 class="font-heading font-bold flex items-center gap-2 text-md">
+                        <i class="fa-solid fa-map-location-dot text-cyanAccent"></i> Joint Command Tactical Threat Map
+                    </h3>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2 py-1 bg-slate-800 text-[10px] font-bold text-slate-400 border border-white/5 rounded">Sector Grid: 43-B Bangalore</span>
+                    </div>
+                </div>
+                <!-- Map Container -->
+                <div id="military-map-container" class="flex-1 rounded-xl bg-slate-950 border border-white/5 overflow-hidden min-h-[350px]"></div>
+                
+                <div class="flex flex-wrap gap-4 text-[10px] text-slate-400 bg-slate-950/30 p-2.5 rounded-lg border border-white/5">
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-redAccent shadow-[0_0_5px_#ff3366]"></span> Critical Cases</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-orangeAccent shadow-[0_0_5px_#ff9900]"></span> High Cases</span>
+                    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-greenAccent shadow-[0_0_5px_#00cc88]"></span> Standard Cases</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-red-600/70 border border-white rotate-45 inline-block"></span> NASA Fire</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 bg-blue-600/70 border border-white rotate-45 inline-block"></span> Flood Gauge</span>
+                </div>
+            </div>
+
+            <!-- Right Panel: HITL Validation Queue & SAR imagery -->
+            <div class="w-full lg:w-[460px] shrink-0 glass-panel p-5 flex flex-col justify-between gap-4 overflow-hidden">
+                <div class="flex flex-col gap-4 overflow-hidden font-body">
+                    <h3 class="font-heading font-bold border-b border-white/5 pb-3 flex items-center gap-2 text-md">
+                        <i class="fa-solid fa-radar text-redAccent"></i> Satellite SAR Imagery Validation (HITL)
+                    </h3>
+                    
+                    <p class="text-xs text-slate-300">
+                        To block malicious coordinates or spoofed signals, human officers cross-check telemetry requests against Synthetic Aperture Radar (SAR) imagery captured from satellites.
+                    </p>
+
+                    <!-- Active Verification Target -->
+                    <div id="hitl-queue-container" class="flex-1 flex flex-col gap-3 overflow-y-auto">
+                        <div class="text-center py-12 text-slate-500 text-xs">
+                            <i class="fa-solid fa-satellite-dish text-3xl mb-2 block"></i>
+                            Awaiting incoming SOS signals to load SAR cross-checking queue.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950/60 p-4 border border-white/5 rounded-xl flex flex-col gap-1.5 text-[11px] text-slate-400 font-body">
+                    <h4 class="text-[10px] font-bold text-redAccent uppercase tracking-wider flex items-center gap-1">
+                        <i class="fa-solid fa-user-check"></i> Operational Security Layer
+                    </h4>
+                    <p>
+                        Incidents marked as "Spoofed" are hidden from dispatch queues, preventing wastage of scarce resources. Incidents verified as "Approved" are prioritized for dispatch.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== TAB 4: SATELLITE CONNECTION HANDLER ==================== -->
+        <div id="view-satellite-view" class="tab-content hidden flex flex-col gap-6">
+            <!-- Satellite Telemetry Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 font-body">
+                <!-- Packet Loss Card with Live Canvas chart inside -->
+                <div class="glass-panel p-5 flex flex-col justify-between gap-3 overflow-hidden">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Satellite Signal Wave (LEO Footprint)</h4>
+                            <p class="text-2xl font-bold font-heading mt-1 text-cyanAccent" id="leo-signal-val">SNR: 24.8 dB</p>
+                        </div>
+                        <i class="fa-solid fa-wave-square text-cyanAccent text-md bg-cyanAccent/10 p-2.5 rounded-lg border border-cyanAccent/20"></i>
+                    </div>
+                    <!-- Live sine wave signal oscilloscope canvas -->
+                    <div class="h-20 w-full border border-white/5 rounded-lg bg-black/40 overflow-hidden relative">
+                        <canvas id="canvas-oscilloscope" class="w-full h-full"></canvas>
+                    </div>
+                    <div class="text-[10px] text-slate-500 flex justify-between font-code">
+                        <span>LEO Orbit Uplink: Active</span>
+                        <span>9.6 kbps</span>
+                    </div>
+                </div>
+
+                <!-- Active Satellite Beams -->
+                <div class="glass-panel p-5 flex flex-col justify-between gap-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">LEO Transponder Telemetry</h4>
+                            <p class="text-2xl font-bold font-heading mt-1 text-orangeAccent">Ka-Band Transceiver</p>
+                        </div>
+                        <i class="fa-solid fa-satellite-dish text-orangeAccent text-xl bg-orangeAccent/10 p-2.5 rounded-lg border border-orangeAccent/20"></i>
+                    </div>
+                    <!-- Mock beam tracking visualization -->
+                    <div class="h-20 w-full border border-white/5 rounded-lg bg-black/40 p-2 text-[10px] font-code text-slate-400 flex flex-col justify-between">
+                        <div class="flex justify-between"><span>Uplink Frequency:</span> <strong class="text-slate-200">29.45 GHz</strong></div>
+                        <div class="flex justify-between"><span>Downlink Freq:</span> <strong class="text-slate-200">19.20 GHz</strong></div>
+                        <div class="flex justify-between"><span>Orbital Altitude:</span> <strong class="text-slate-200">550 km (LEO)</strong></div>
+                    </div>
+                    <div class="text-[10px] text-slate-500 flex justify-between">
+                        <span>Elevation: 42.8°</span>
+                        <span>Orbit Latency: 24 ms</span>
+                    </div>
+                </div>
+
+                <!-- E2EE Security Keys -->
+                <div class="glass-panel p-5 flex flex-col justify-between gap-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h4 class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">E2EE Cryptographic Integrity</h4>
+                            <p class="text-sm font-bold font-heading mt-2 text-greenAccent font-code">RSA-2048 Keys Loaded</p>
+                        </div>
+                        <i class="fa-solid fa-key text-greenAccent text-xl bg-greenAccent/10 p-2.5 rounded-lg border border-greenAccent/20"></i>
+                    </div>
+                    <!-- Visual representation of key pairs -->
+                    <div class="h-20 w-full border border-white/5 rounded-lg bg-black/40 p-2 text-[8px] font-code text-slate-500 overflow-hidden flex flex-col justify-between">
+                        <div>PUB: RSA-2048-PUB-8F9B2C3D4E5F6A7B</div>
+                        <div>PRIV: RSA-2048-PRIV-9A8B7C6D5E4F3A2B</div>
+                        <div class="text-greenAccent font-semibold flex items-center gap-1"><i class="fa-solid fa-shield-halved"></i> LOCAL DECRYPTION PROTOCOL ACTIVE</div>
+                    </div>
+                    <div class="text-[10px] text-slate-500 flex justify-between">
+                        <span>Zero trust keys</span>
+                        <span>Local Decrypt only</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- raw bytes and security logs panel -->
+            <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <!-- Left Panel: Raw packet inspector & Byte Map -->
+                <div class="glass-panel p-5 flex flex-col gap-4 overflow-hidden">
+                    <h3 class="font-heading font-bold border-b border-white/5 pb-3 flex items-center gap-2 text-md">
+                        <i class="fa-solid fa-magnifying-glass-chart text-cyanAccent"></i> 17-Byte Binary Hex Inspector
+                    </h3>
+                    
+                    <p class="text-xs text-slate-400 font-body mb-1">
+                        Hover over an incoming packet below to inspect the structural byte compression allocation.
+                    </p>
+
+                    <!-- Hex byte layout legend chart -->
+                    <div class="bg-slate-950 p-3 rounded-lg border border-white/5 flex flex-col gap-2 font-code text-[10px]">
+                        <span class="text-[8px] text-slate-500 uppercase font-body font-bold">17-Byte Byte Mapping Structure</span>
+                        <div class="flex flex-wrap gap-1.5 text-[11px] font-bold">
+                            <span class="px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300 border border-yellow-500/30" title="Bytes 0 to 7 represent the unique 64-bit integer User ID">User ID (8 Bytes)</span>
+                            <span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30" title="Bytes 8 to 11 represent the 32-bit floating point Latitude coordinate">Lat (4 Bytes)</span>
+                            <span class="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30" title="Bytes 12 to 15 represent the 32-bit floating point Longitude coordinate">Lon (4 Bytes)</span>
+                            <span class="px-2 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30" title="Byte 16 represents the packed Status byte (MSB 7 bits for severity, LSB 1 bit for vulnerability)">Status (1 Byte)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[300px]" id="raw-packet-inspector-list">
+                        <div class="text-center py-12 text-slate-500 text-xs">
+                            <i class="fa-solid fa-file-code text-3xl mb-2 block"></i>
+                            Awaiting incoming telemetry streams.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Panel: Crypto logs & Active Relays -->
+                <div class="flex flex-col gap-6">
+                    <!-- Crypto logs -->
+                    <div class="glass-panel p-5 flex flex-col gap-4 overflow-hidden">
+                        <h3 class="font-heading font-bold border-b border-white/5 pb-3 flex items-center gap-2 text-md">
+                            <i class="fa-solid fa-shield-halved text-greenAccent"></i> E2EE Decryption Pipe Logs
+                        </h3>
+                        
+                        <div class="flex-1 flex flex-col gap-3 overflow-y-auto max-h-[200px]" id="crypto-pipe-logs">
+                            <div class="text-center py-12 text-slate-500 text-xs">
+                                <i class="fa-solid fa-lock text-3xl mb-2 block"></i>
+                                Decryption log empty.
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Active Bluetooth mesh nodes log -->
+                    <div class="glass-panel p-5 flex flex-col gap-4 overflow-hidden">
+                        <h3 class="font-heading font-bold border-b border-white/5 pb-3 flex items-center gap-2 text-md">
+                            <i class="fa-solid fa-network-wired text-cyanAccent"></i> Offline BLE Mesh Relays status
+                        </h3>
+                        <div class="grid grid-cols-2 gap-3 text-xs font-semibold">
+                            <div class="bg-slate-950/40 p-2.5 rounded-lg border border-white/5 flex flex-col gap-1">
+                                <span class="text-slate-200">Relay Node Alpha</span>
+                                <div class="flex justify-between text-[10px] text-slate-500 font-code font-bold">
+                                    <span class="text-greenAccent">ONLINE (RSSI -70)</span>
+                                    <span>BATTERY 82%</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-950/40 p-2.5 rounded-lg border border-white/5 flex flex-col gap-1">
+                                <span class="text-slate-200">Relay Node Beta</span>
+                                <div class="flex justify-between text-[10px] text-slate-500 font-code font-bold">
+                                    <span class="text-greenAccent">ONLINE (RSSI -71)</span>
+                                    <span>BATTERY 94%</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-950/40 p-2.5 rounded-lg border border-white/5 flex flex-col gap-1">
+                                <span class="text-slate-200">Relay Node Gamma</span>
+                                <div class="flex justify-between text-[10px] text-slate-500 font-code font-bold">
+                                    <span class="text-greenAccent">ONLINE (RSSI -71)</span>
+                                    <span>BATTERY 68%</span>
+                                </div>
+                            </div>
+                            <div class="bg-slate-950/40 p-2.5 rounded-lg border border-white/5 flex flex-col gap-1">
+                                <span class="text-slate-200">LEO Mesh Gateway</span>
+                                <div class="flex justify-between text-[10px] text-slate-500 font-code font-bold">
+                                    <span class="text-orangeAccent">SATELLITE LINK</span>
+                                    <span>BATTERY 100%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 bg-slate-950/80 text-center py-4 text-[10px] text-slate-500 font-semibold uppercase tracking-widest px-6 mt-12">
+        <div class="max-w-[1800px] mx-auto">
+            &copy; 2026 Aegis Intelligence Grid. Designed for off-grid operations. Dual-AI classification integrated.
+        </div>
+    </footer>
+
+    <!-- Leaflet Map JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- Javascript Application Logic -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
