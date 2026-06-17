@@ -439,10 +439,28 @@ async def clear_telemetry_db():
 # Serve Dashboard HTML View
 @app.get("/")
 def get_web_dashboard():
-    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+    static_path = os.path.join(STATIC_DIR, "index.html")
+    root_path = os.path.join(CURRENT_DIR, "index.html")
+    
+    if os.path.exists(static_path):
+        return FileResponse(static_path)
+    elif os.path.exists(root_path):
+        return FileResponse(root_path)
+    else:
+        return {
+            "status": "error",
+            "message": "index.html could not be found in the root or static directory.",
+            "current_dir_contents": os.listdir(CURRENT_DIR) if os.path.exists(CURRENT_DIR) else [],
+            "static_dir_contents": os.listdir(STATIC_DIR) if os.path.exists(STATIC_DIR) else []
+        }
 
-# Mount static files safely. Fallback to current directory relative mount
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+# Mount static files dynamically based on where they were uploaded
+if os.path.exists(os.path.join(STATIC_DIR, "app.js")):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+else:
+    app.mount("/static", StaticFiles(directory=CURRENT_DIR), name="static")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
