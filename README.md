@@ -1,3 +1,4 @@
+DEPLOYMENT LINK HERE : https://huggingface.co/spaces/Hemanthmardi/aegis-intelligence-grid
 # Aegis Intelligence Grid 🚨
 **Enterprise Offline-First Crisis Command Center**
 A resilient full-stack platform that lets survivors send ultra-compact 17-byte SOS beacons (even completely offline) and delivers real-time AI-powered dashboards to NGOs, military, and satellite teams.
